@@ -1,17 +1,29 @@
 import tkinter
 from tkinter import Toplevel
+from tkinter import Scrollbar
 import cv2
 import PIL.Image, PIL.ImageTk, PIL.ImageDraw
+from pathlib import Path
+import fnmatch
+import os
 
 class App:
-    def __init__(self, master, window_title, image_path="test.png"):
+    def __init__(self, master, window_title, dataset_path="dataset/test.png"):
         self.window = master
         self.window.title(window_title)
         self.popup_switch = 0
+        self.dataset_path = dataset_path
+        self.img_path = dataset_path
 
         # TO-DO label of entry ---using grid and frame of whole theme
         self.l1 = tkinter.Label(text="Test", fg="red", bg="white")
         self.l1.pack(anchor=tkinter.NW)
+
+        # TO-Do Scrollbar should have a Frame as parent rather than canvas
+        self.scrollbar = Scrollbar(master)
+        self.scrollbar.pack(side='right', fill='y')
+        self.scrollbar.config(command = self.canvas.yview)
+
 
         #[ENTRY] Creat a entry where user can decide the cropping size
         self.crop_height = tkinter.StringVar()
@@ -29,9 +41,10 @@ class App:
         self.btn_crop_size.pack(anchor=tkinter.N, expand=True)
 
         # Load an image using OpenCV
-        self.cv_img = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
-        self.height, self.width, no_channels = self.cv_img.shape
-
+        self.cv_img = cv2.cvtColor(cv2.imread(self.img_path), cv2.COLOR_BGR2RGB)
+        #self.height, self.width, no_channels = self.cv_img.shape
+        self.height = 2500
+        self.width  = 2200
         #[CANVAS] Create a canvas that can fit the above image
         self.canvas = tkinter.Canvas(self.window, width = self.width, height = self.height)
         self.canvas.pack()
@@ -64,6 +77,7 @@ class App:
             self.currenty = event.y
             print ("clicked at", self.currentx, self.currenty)
             new_page(self)
+            self.load_image()
         self.canvas.bind("<Button-1>", func=click)
 
         #[CLICK][CALLBACK] Create popup
@@ -117,6 +131,41 @@ class App:
         print("crop_height=" ,self.mask_height)
         print("crop_width=" ,self.mask_width)
 
+        # Read dataset
+        def load_image(self):
+            
+            DATASET_DIR       = Path().cwd() / 'dataset'/ 'CHD'
+            DATASET_DIR_LIST  = list(DATASET_DIR.glob('*'))
+            self.dataset_path = DATASET_DIR
+            self.vd_list      = list()
+
+            for data_dir in sorted(DATASET_DIR_LIST):
+                img_id      = data_dir.stem
+                img_name    = img_id + '_VD'
+                img_name_de = img_id + '_VDanno'
+          
+                self.vd_list += sorted(list(set(data_dir.glob(img_name + '*')) - set(data_dir.glob(img_name_de + '*'))))
+            
+            #print(str(self.vd_list[0].absolute()))
+            
+        load_image(self)        
+        self.canvas.delete("all")
+        self.img_path = str(self.vd_list[0].absolute())
+        
+        self.l1 = tkinter.Label(text=self.vd_list[0].stem, fg="red", bg="white")
+
+
+        # Load an image using OpenCV
+        self.cv_img = cv2.cvtColor(cv2.imread(self.img_path), cv2.COLOR_BGR2RGB)
+        self.height, self.width, no_channels = self.cv_img.shape
+
+        #[CANVAS] Create a canvas that can fit the above image
+        self.canvas = tkinter.Canvas(self.window, width = self.width, height = self.height)
+        self.canvas.pack()
+        self.photo = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
+        self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
+        
+
     #[BUTTON][CALLBACK] Callback for new_page popup "OK" button
     def popup_ok(self):
         if self.popup_switch == 0:
@@ -135,6 +184,8 @@ class App:
         #TO-DO
         pass
     
+
+     
 # Create a window and pass it to the Application object
 App(tkinter.Tk(), "Tkinter and OpenCV")
 
