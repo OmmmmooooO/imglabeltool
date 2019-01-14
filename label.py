@@ -8,49 +8,61 @@ import fnmatch
 import os
 
 class App:
-    def __init__(self, master, window_title, dataset_path="dataset/test.png"):
+    def __init__(self, master, window_title='cropping tool', dataset_path="dataset/test.png"):
         self.window = master
         self.window.title(window_title)
         self.popup_switch = 0
         self.dataset_path = dataset_path
         self.img_path = dataset_path
+        
+        #[Frame] Including upper half
+        self.upframe = tkinter.Frame(self.window)
+        self.upframe.pack()
+
+        #[Frame] Including lower half
+        self.downframe = tkinter.Frame(self.window, width=800,height=800)
+        self.downframe.pack()
 
         # TO-DO label of entry ---using grid and frame of whole theme
-        self.l1 = tkinter.Label(text="Test", fg="red", bg="white")
-        self.l1.pack(anchor=tkinter.NW)
-
-        # TO-Do Scrollbar should have a Frame as parent rather than canvas
-        self.scrollbar = Scrollbar(master)
-        self.scrollbar.pack(side='right', fill='y')
-        self.scrollbar.config(command = self.canvas.yview)
-
+        self.l1 = tkinter.Label(self.upframe, text="Test", fg="red", bg="white")
+        self.l1.pack(anchor=tkinter.N)      
 
         #[ENTRY] Creat a entry where user can decide the cropping size
-        self.crop_height = tkinter.StringVar()
-        self.crop_width = tkinter.StringVar()
+        self.crop_height = tkinter.StringVar(self.upframe)
+        self.crop_width = tkinter.StringVar(self.upframe)
         self.crop_height.set("100") # default size
         self.crop_width.set("100")
-        vcmd = (self.window.register(self.validate), '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
-        self.entry_height = tkinter.Entry(self.window, validate = 'key', validatecommand = vcmd, textvariable=self.crop_height)
-        self.entry_width = tkinter.Entry(self.window, validate = 'key', validatecommand = vcmd, textvariable=self.crop_width)  
+        vcmd = (self.upframe.register(self.validate), '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
+        self.entry_height = tkinter.Entry(self.upframe, validate = 'key', validatecommand = vcmd, textvariable=self.crop_height)
+        self.entry_width = tkinter.Entry(self.upframe, validate = 'key', validatecommand = vcmd, textvariable=self.crop_width)  
         self.entry_height.pack(anchor=tkinter.N)
         self.entry_width.pack(anchor=tkinter.N)
         
         #[BUTTON] Button for determining the crop size        
-        self.btn_crop_size = tkinter.Button(self.window, text="OK", width=10, command=self.crop_size)
+        self.btn_crop_size = tkinter.Button(self.upframe, text="OK", width=10, command=self.crop_size)
         self.btn_crop_size.pack(anchor=tkinter.N, expand=True)
 
-        # Load an image using OpenCV
+        #Load an image using OpenCV
         self.cv_img = cv2.cvtColor(cv2.imread(self.img_path), cv2.COLOR_BGR2RGB)
-        #self.height, self.width, no_channels = self.cv_img.shape
-        self.height = 2500
-        self.width  = 2200
-        #[CANVAS] Create a canvas that can fit the above image
-        self.canvas = tkinter.Canvas(self.window, width = self.width, height = self.height)
-        self.canvas.pack()
         self.photo = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
-        self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
+        #self.height, self.width, no_channels = self.cv_img.shape
+        self.height = 300
+        self.width  = 300
         
+        #[Scrollbar]
+        self.yscrollbar = Scrollbar(self.downframe, orient='vertical')
+        self.yscrollbar.pack(side='right', fill='y')
+        self.xscrollbar = Scrollbar(self.downframe, orient='horizontal')
+        self.xscrollbar.pack(side='bottom', fill='x')
+        
+        #[CANVAS] Create a canvas to fit a image
+        self.canvas = tkinter.Canvas(self.downframe, width = self.width, height = self.height, xscrollcommand = self.xscrollbar.set, yscrollcommand=self.yscrollbar.set)
+        self.xscrollbar.config(command = self.canvas.xview)
+        self.yscrollbar.config(command = self.canvas.yview)
+        self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
+        self.canvas.pack(side = 'left', fill = 'both')
+        self.canvas.config(scrollregion=self.canvas.bbox('all'))
+
         #[MASK][CALLBACK] Draw a rectangle mask which follows the mouse
         def mask(event):
 
