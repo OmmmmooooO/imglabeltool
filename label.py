@@ -66,21 +66,25 @@ class App:
         #[MASK][CALLBACK] Draw a rectangle mask which follows the mouse
         def mask(event):
 
-            if hasattr(self, 'img'):
-                self.canvas.delete("all")
+
             self.img = self.cv_img.copy()
             self.overlay = self.cv_img.copy()
             self.opacity = 0.3
-            if hasattr(self,'mask_height'):
-                cv2.rectangle(self.overlay,(event.x-int(self.mask_width/2),event.y-int(self.mask_height/2)),
-                (event.x+int(self.mask_width/2),event.y+int(self.mask_height/2)),(255,255,0),-1)
-            else:
-                cv2.rectangle(self.overlay,(event.x-50,event.y-50),(event.x+50,event.y+50),(255,255,0),-1)
+            if hasattr(self,'mask_height'): # customized mask size
+                cv2.rectangle(self.overlay,(int(self.canvas.canvasx(event.x))-int(self.mask_width/2),int(self.canvas.canvasy(event.y))-int(self.mask_height/2)),
+                (int(self.canvas.canvasx(event.x))+int(self.mask_width/2),int(self.canvas.canvasy(event.y))+int(self.mask_height/2)),(255,255,0),-1)
+            else: # default mask size is 100x100
+                cv2.rectangle(self.overlay,(int(self.canvas.canvasx(event.x))-50,int(self.canvas.canvasy(event.y))-50),
+                (int(self.canvas.canvasx(event.x))+50,int(self.canvas.canvasy(event.y))+50),(255,255,0),-1)
             cv2.addWeighted(self.overlay, self.opacity, self.img, 1 - self.opacity, 0, self.img)
+            
+            if hasattr(self, 'img'):
+                self.canvas.delete("all")
+
             self.photo = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.img))
             self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
             # debug only
-            print('{},{}'.format(event.x,event.y))
+            print('{},{}'.format(self.canvas.canvasx(event.x),self.canvas.canvasy(event.y)))
         self.canvas.bind("<Motion>", func=mask)
         
         #[CLICK][CALLBACK] Capture click position
