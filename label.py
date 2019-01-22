@@ -26,11 +26,10 @@ class App:
                 img_name    = img_id + '_VD'
                 img_name_de = img_id + '_VDanno'
                 id_list += sorted(list(set(data_dir.glob(img_name + '*')) - set(data_dir.glob(img_name_de + '*'))))
-            
-            #print(str(id_list[10].absolute()))
+            #print(str(id_list[0].absolute()))
             return id_list    
         self.id_list = get_id_list()
-        print(str(self.id_list[1].absolute()))
+        print(str(self.id_list[0].absolute()))
         
         #[Frame] Including upper half
         self.upframe = tkinter.Frame(self.window)
@@ -41,7 +40,7 @@ class App:
         self.downframe.pack()
 
         # TO-DO label of entry ---using grid and frame of whole theme
-        self.l1 = tkinter.Label(self.upframe, text="Test", fg="red", bg="white")
+        self.l1 = tkinter.Label(self.upframe, text="Config", fg="red", bg="yellow")
         self.l1.pack(anchor=tkinter.N)      
         
         #[ENTRY] Creat a entry where user can decide the cropping size
@@ -74,18 +73,12 @@ class App:
         self.xscrollbar.pack(side='bottom', fill='x')
         
         #[CANVAS] Create a canvas to fit a image
-        self.canvas_height = 300
-        self.canvas_width  = 300
+        self.canvas_height = 500
+        self.canvas_width  = 800
         self.canvas = tkinter.Canvas(self.downframe, width = self.canvas_width, height = self.canvas_height, xscrollcommand = self.xscrollbar.set, yscrollcommand=self.yscrollbar.set)
         self.xscrollbar.config(command = self.canvas.xview)
         self.yscrollbar.config(command = self.canvas.yview)
-
-        self.cv_img = cv2.cvtColor(cv2.imread(self.img_path), cv2.COLOR_BGR2RGB)
-        self.photo  = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
-        
-        self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
-        self.canvas.pack(side = 'left', fill = 'both')
-        self.canvas.config(scrollregion=self.canvas.bbox('all'))
+        self.set_canvas()
 
         #[MASK][CALLBACK] Draw a rectangle mask which follows the mouse
         def mask(event):
@@ -115,7 +108,6 @@ class App:
             self.currenty = int(self.canvas.canvasy(event.y))
             print ("clicked at", self.currentx, self.currenty)
             new_page(self)
-            self.load_image()
         self.canvas.bind("<Button-1>", func=click)
 
         #[CLICK][CALLBACK] Create pop-up window
@@ -148,32 +140,13 @@ class App:
                 self.btn_popup2.pack(side=tkinter.LEFT)
 
         self.window.mainloop()
-
-    # Read dataset
-    def load_image(self):
-        DATASET_DIR       = Path().cwd() / 'dataset'/ 'CHD'
-        DATASET_DIR_LIST  = list(DATASET_DIR.glob('*'))
-        self.dataset_path = DATASET_DIR
-        self.vd_list      = list()
-
-        for data_dir in sorted(DATASET_DIR_LIST):
-            img_id      = data_dir.stem
-            img_name    = img_id + '_VD'
-            img_name_de = img_id + '_VDanno'
-            self.vd_list += sorted(list(set(data_dir.glob(img_name + '*')) - set(data_dir.glob(img_name_de + '*'))))
-        print(DATASET_DIR)
-        #print(str(self.vd_list[0].absolute()))
         
     def set_canvas(self):
-        dataset_path = self.dataset_path
-        img_path = dataset_path + self.img_id + '/' + ''
         self.cv_img = cv2.cvtColor(cv2.imread(self.img_path), cv2.COLOR_BGR2RGB)
         self.photo  = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
-        
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
         self.canvas.pack(side = 'left', fill = 'both')
         self.canvas.config(scrollregion=self.canvas.bbox('all'))
-        return img
     
     # Valid list for entry object to restrict some characters.
     def validate(self, action, index, value_if_allowed, prior_value, text, validation_type, trigger_type, widget_name):
@@ -188,42 +161,18 @@ class App:
 
     #[BUTTON][CALLBACK] Callback for btn_crop_size or "OK" button
     def crop_size(self):
-        self.mask_height=int(self.crop_height.get())
-        self.mask_width =int(self.crop_width.get())
-        self.entry_id.config(bg='red')
-        self.img_id = self.id.get()
-        print(self.img_id)
-        
-        print(self.id_list[0].match(self.img_id +'/*.jpg'))
-        #print (filter(lambda x: self.img_id in x, self.id_list))
-        #self.set_canvas()
-
-
-
-        '''
-        # debug only
-        print("crop_height=" ,self.mask_height)
-        print("crop_width=" ,self.mask_width)
-            
-        self.load_image()        
         self.canvas.delete("all")
-        self.img_path = str(self.vd_list[0].absolute())
-        
-        self.l1 = tkinter.Label(text=self.vd_list[0].stem, fg="red", bg="white")
-        
-        # Load an image using OpenCV
-        self.cv_img = cv2.cvtColor(cv2.imread(self.img_path), cv2.COLOR_BGR2RGB)
-        self.photo = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
-        self.height, self.width, no_channels = self.cv_img.shape
+        self.mask_height = int(self.crop_height.get())
+        self.mask_width  = int(self.crop_width.get())
+        self.entry_id.config(bg='red')
 
-        #[CANVAS] Create a canvas that can fit the above image
-        self.canvas = tkinter.Canvas(self.downframe, width = self.width, height = self.height, xscrollcommand = self.xscrollbar.set, yscrollcommand=self.yscrollbar.set)
-        self.xscrollbar.config(command = self.canvas.xview)
-        self.yscrollbar.config(command = self.canvas.yview)
-        self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
-        self.canvas.pack(side = 'left', fill = 'both')
-        self.canvas.config(scrollregion=self.canvas.bbox('all'))
-        '''
+        self.img_id   = self.id.get()
+        img_posixpath = [posixpath for posixpath in self.id_list if posixpath.match(self.img_id + '/*.jpg')]
+        self.img_path = str(img_posixpath[0])
+        print(self.img_path)
+        
+        self.set_canvas()
+
     #[BUTTON][CALLBACK] Callback for new_page popup "OK" button
     def popup_ok(self):
         if self.popup_switch == 0:
