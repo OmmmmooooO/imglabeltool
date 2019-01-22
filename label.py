@@ -8,12 +8,29 @@ import fnmatch
 import os
 
 class App:
-    def __init__(self, master, window_title='cropping tool', dataset_path="dataset/test.png"):
+    def __init__(self, master, window_title='cropping tool', dataset_path="dataset/"):
         self.window = master
         self.window.title(window_title)
         self.popup_switch = 0
-        self.dataset_path = dataset_path
-        self.img_path = dataset_path
+        self.img_path     = dataset_path + 'test.png'
+        self.img_id       = '150057'  #first image
+        self.dataset_path = dataset_path + 'CHD/'
+        
+        def get_id_list():
+            DATASET_DIR       = Path().cwd() / 'dataset'/ 'CHD'
+            DATASET_DIR_LIST  = list(DATASET_DIR.glob('*'))
+            id_list           = list()
+
+            for data_dir in sorted(DATASET_DIR_LIST):
+                img_id      = data_dir.stem
+                img_name    = img_id + '_VD'
+                img_name_de = img_id + '_VDanno'
+                id_list += sorted(list(set(data_dir.glob(img_name + '*')) - set(data_dir.glob(img_name_de + '*'))))
+            
+            #print(str(id_list[10].absolute()))
+            return id_list    
+        self.id_list = get_id_list()
+        print(str(self.id_list[1].absolute()))
         
         #[Frame] Including upper half
         self.upframe = tkinter.Frame(self.window)
@@ -26,6 +43,14 @@ class App:
         # TO-DO label of entry ---using grid and frame of whole theme
         self.l1 = tkinter.Label(self.upframe, text="Test", fg="red", bg="white")
         self.l1.pack(anchor=tkinter.N)      
+        
+        #[ENTRY] Creat a entry where user can decide the cropping size
+        self.id = tkinter.StringVar(self.upframe)
+        self.id.set(self.img_id)
+
+        vcmd = (self.upframe.register(self.validate), '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
+        self.entry_id = tkinter.Entry(self.upframe, validate = 'key', validatecommand = vcmd, textvariable=self.id)
+        self.entry_id.pack(anchor=tkinter.N)
 
         #[ENTRY] Creat a entry where user can decide the cropping size
         self.crop_height = tkinter.StringVar(self.upframe)
@@ -38,17 +63,10 @@ class App:
         self.entry_height.pack(anchor=tkinter.N)
         self.entry_width.pack(anchor=tkinter.N)
         
-        #[BUTTON] Button for determining the crop size        
+        #[BUTTON] Button for determining the crop size and image starting id       
         self.btn_crop_size = tkinter.Button(self.upframe, text="OK", width=10, command=self.crop_size)
         self.btn_crop_size.pack(anchor=tkinter.N, expand=True)
 
-        #Load an image using OpenCV
-        self.cv_img = cv2.cvtColor(cv2.imread(self.img_path), cv2.COLOR_BGR2RGB)
-        self.photo = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
-        #self.height, self.width, no_channels = self.cv_img.shape
-        self.height = 300
-        self.width  = 300
-        
         #[Scrollbar]
         self.yscrollbar = Scrollbar(self.downframe, orient='vertical')
         self.yscrollbar.pack(side='right', fill='y')
@@ -56,17 +74,21 @@ class App:
         self.xscrollbar.pack(side='bottom', fill='x')
         
         #[CANVAS] Create a canvas to fit a image
-        self.canvas = tkinter.Canvas(self.downframe, width = self.width, height = self.height, xscrollcommand = self.xscrollbar.set, yscrollcommand=self.yscrollbar.set)
+        self.canvas_height = 300
+        self.canvas_width  = 300
+        self.canvas = tkinter.Canvas(self.downframe, width = self.canvas_width, height = self.canvas_height, xscrollcommand = self.xscrollbar.set, yscrollcommand=self.yscrollbar.set)
         self.xscrollbar.config(command = self.canvas.xview)
         self.yscrollbar.config(command = self.canvas.yview)
+
+        self.cv_img = cv2.cvtColor(cv2.imread(self.img_path), cv2.COLOR_BGR2RGB)
+        self.photo  = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
+        
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
         self.canvas.pack(side = 'left', fill = 'both')
         self.canvas.config(scrollregion=self.canvas.bbox('all'))
 
         #[MASK][CALLBACK] Draw a rectangle mask which follows the mouse
         def mask(event):
-
-
             self.img = self.cv_img.copy()
             self.overlay = self.cv_img.copy()
             self.opacity = 0.3
@@ -89,14 +111,14 @@ class App:
         
         #[CLICK][CALLBACK] Capture click position
         def click(event):
-            self.currentx = event.x
-            self.currenty = event.y
+            self.currentx = int(self.canvas.canvasx(event.x))
+            self.currenty = int(self.canvas.canvasy(event.y))
             print ("clicked at", self.currentx, self.currenty)
             new_page(self)
             self.load_image()
         self.canvas.bind("<Button-1>", func=click)
 
-        #[CLICK][CALLBACK] Create popup
+        #[CLICK][CALLBACK] Create pop-up window
         def new_page(self):
             if self.popup_switch == 0:
                 self.popup = Toplevel(self.window)
@@ -127,6 +149,32 @@ class App:
 
         self.window.mainloop()
 
+    # Read dataset
+    def load_image(self):
+        DATASET_DIR       = Path().cwd() / 'dataset'/ 'CHD'
+        DATASET_DIR_LIST  = list(DATASET_DIR.glob('*'))
+        self.dataset_path = DATASET_DIR
+        self.vd_list      = list()
+
+        for data_dir in sorted(DATASET_DIR_LIST):
+            img_id      = data_dir.stem
+            img_name    = img_id + '_VD'
+            img_name_de = img_id + '_VDanno'
+            self.vd_list += sorted(list(set(data_dir.glob(img_name + '*')) - set(data_dir.glob(img_name_de + '*'))))
+        print(DATASET_DIR)
+        #print(str(self.vd_list[0].absolute()))
+        
+    def set_canvas(self):
+        dataset_path = self.dataset_path
+        img_path = dataset_path + self.img_id + '/' + ''
+        self.cv_img = cv2.cvtColor(cv2.imread(self.img_path), cv2.COLOR_BGR2RGB)
+        self.photo  = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
+        
+        self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
+        self.canvas.pack(side = 'left', fill = 'both')
+        self.canvas.config(scrollregion=self.canvas.bbox('all'))
+        return img
+    
     # Valid list for entry object to restrict some characters.
     def validate(self, action, index, value_if_allowed, prior_value, text, validation_type, trigger_type, widget_name):
         if text in '0123456789':
@@ -141,47 +189,41 @@ class App:
     #[BUTTON][CALLBACK] Callback for btn_crop_size or "OK" button
     def crop_size(self):
         self.mask_height=int(self.crop_height.get())
-        self.mask_width=int(self.crop_width.get())
+        self.mask_width =int(self.crop_width.get())
+        self.entry_id.config(bg='red')
+        self.img_id = self.id.get()
+        print(self.img_id)
         
+        print(self.id_list[0].match(self.img_id +'/*.jpg'))
+        #print (filter(lambda x: self.img_id in x, self.id_list))
+        #self.set_canvas()
+
+
+
+        '''
         # debug only
         print("crop_height=" ,self.mask_height)
         print("crop_width=" ,self.mask_width)
-
-        # Read dataset
-        def load_image(self):
             
-            DATASET_DIR       = Path().cwd() / 'dataset'/ 'CHD'
-            DATASET_DIR_LIST  = list(DATASET_DIR.glob('*'))
-            self.dataset_path = DATASET_DIR
-            self.vd_list      = list()
-
-            for data_dir in sorted(DATASET_DIR_LIST):
-                img_id      = data_dir.stem
-                img_name    = img_id + '_VD'
-                img_name_de = img_id + '_VDanno'
-          
-                self.vd_list += sorted(list(set(data_dir.glob(img_name + '*')) - set(data_dir.glob(img_name_de + '*'))))
-            
-            #print(str(self.vd_list[0].absolute()))
-            
-        load_image(self)        
+        self.load_image()        
         self.canvas.delete("all")
         self.img_path = str(self.vd_list[0].absolute())
         
         self.l1 = tkinter.Label(text=self.vd_list[0].stem, fg="red", bg="white")
-
-
+        
         # Load an image using OpenCV
         self.cv_img = cv2.cvtColor(cv2.imread(self.img_path), cv2.COLOR_BGR2RGB)
+        self.photo = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
         self.height, self.width, no_channels = self.cv_img.shape
 
         #[CANVAS] Create a canvas that can fit the above image
-        self.canvas = tkinter.Canvas(self.window, width = self.width, height = self.height)
-        self.canvas.pack()
-        self.photo = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
+        self.canvas = tkinter.Canvas(self.downframe, width = self.width, height = self.height, xscrollcommand = self.xscrollbar.set, yscrollcommand=self.yscrollbar.set)
+        self.xscrollbar.config(command = self.canvas.xview)
+        self.yscrollbar.config(command = self.canvas.yview)
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
-        
-
+        self.canvas.pack(side = 'left', fill = 'both')
+        self.canvas.config(scrollregion=self.canvas.bbox('all'))
+        '''
     #[BUTTON][CALLBACK] Callback for new_page popup "OK" button
     def popup_ok(self):
         if self.popup_switch == 0:
@@ -199,8 +241,6 @@ class App:
 
         #TO-DO
         pass
-    
-
      
 # Create a window and pass it to the Application object
 App(tkinter.Tk(), "Tkinter and OpenCV")
