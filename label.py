@@ -1,5 +1,6 @@
 import tkinter
 from tkinter import Toplevel
+from PyQt4 import QtGui 
 from tkinter import Scrollbar
 import cv2
 import PIL.Image, PIL.ImageTk, PIL.ImageDraw
@@ -16,20 +17,22 @@ class App:
         self.img_id       = '150057'  #first image
         self.dataset_path = dataset_path + 'CHD/'
         
-        def get_id_list():
+        def get_img_list():
             DATASET_DIR       = Path().cwd() / 'dataset'/ 'CHD'
             DATASET_DIR_LIST  = list(DATASET_DIR.glob('*'))
-            id_list           = list()
+            img_list           = list()
 
             for data_dir in sorted(DATASET_DIR_LIST):
                 img_id      = data_dir.stem
                 img_name    = img_id + '_VD'
                 img_name_de = img_id + '_VDanno'
-                id_list += sorted(list(set(data_dir.glob(img_name + '*')) - set(data_dir.glob(img_name_de + '*'))))
-            #print(str(id_list[0].absolute()))
-            return id_list    
-        self.id_list = get_id_list()
-        print(str(self.id_list[0].absolute()))
+                img_list += sorted(list(set(data_dir.glob(img_name + '*')) - set(data_dir.glob(img_name_de + '*'))))
+            #print(str(img_list[0].absolute()))
+            return img_list    
+        self.img_list = get_img_list()
+        self.img_list_index = 0  #first image index in img_list
+
+        print(str(self.img_list[0].absolute()))
         
         #[Frame] Including upper half
         self.upframe = tkinter.Frame(self.window)
@@ -67,17 +70,29 @@ class App:
         self.btn_crop_size.pack(anchor=tkinter.N, expand=True)
 
         #[Scrollbar]
-        self.yscrollbar = Scrollbar(self.downframe, orient='vertical')
+        self.yscrollbar = Scrollbar(self.downframe, orient='vertical', width=20)
         self.yscrollbar.pack(side='right', fill='y')
-        self.xscrollbar = Scrollbar(self.downframe, orient='horizontal')
+        self.xscrollbar = Scrollbar(self.downframe, orient='horizontal', width=20)
         self.xscrollbar.pack(side='bottom', fill='x')
         
+        #[MOUSEWHEEL][CALLBACK]
+        def bound_to_mousewheel(event):
+            self.canvas.bind_all("<MouseWheel>", func=on_mousewheel)
+        #[MOUSEWHEEL][CALLBACK]
+        def unbound_to_mousewheel(event):
+            self.canvas.unbind_all("<MouseWheel>")
+        #[MOUSEWHEEL][CALLBACK]
+        def on_mousewheel(event):
+            self.canvas.yview_scroll(-1*(event.delta/120), "units")
+
         #[CANVAS] Create a canvas to fit a image
-        self.canvas_height = 500
+        self.canvas_height = 600
         self.canvas_width  = 800
         self.canvas = tkinter.Canvas(self.downframe, width = self.canvas_width, height = self.canvas_height, xscrollcommand = self.xscrollbar.set, yscrollcommand=self.yscrollbar.set)
         self.xscrollbar.config(command = self.canvas.xview)
         self.yscrollbar.config(command = self.canvas.yview)
+        self.yscrollbar.bind('<Enter>', func=bound_to_mousewheel)
+        self.yscrollbar.bind('<Leave>', func=unbound_to_mousewheel)
         self.set_canvas()
 
         #[MASK][CALLBACK] Draw a rectangle mask which follows the mouse
@@ -167,10 +182,12 @@ class App:
         self.entry_id.config(bg='red')
 
         self.img_id   = self.id.get()
-        img_posixpath = [posixpath for posixpath in self.id_list if posixpath.match(self.img_id + '/*.jpg')]
+        img_posixpath = [posixpath for posixpath in self.img_list if posixpath.match(self.img_id + '/*.jpg')]
+        self.img_list_index = self.img_list.index(img_posixpath[0])
         self.img_path = str(img_posixpath[0])
-        print(self.img_path)
-        
+
+        print('###self.img_path = %s\n' %self.img_path)
+        print('***self.img_list_index = %d\n' %self.img_list_index)
         self.set_canvas()
 
     #[BUTTON][CALLBACK] Callback for new_page popup "OK" button
