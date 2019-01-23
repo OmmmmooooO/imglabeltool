@@ -1,6 +1,5 @@
 import tkinter
 from tkinter import Toplevel
-from PyQt4 import QtGui 
 from tkinter import Scrollbar
 import cv2
 import PIL.Image, PIL.ImageTk, PIL.ImageDraw
@@ -42,7 +41,7 @@ class App:
         self.downframe = tkinter.Frame(self.window, width=800,height=800)
         self.downframe.pack()
 
-        # TO-DO label of entry ---using grid and frame of whole theme
+        #[Label]
         self.l1 = tkinter.Label(self.upframe, text="Config", fg="red", bg="yellow")
         self.l1.pack(anchor=tkinter.N)      
         
@@ -100,6 +99,8 @@ class App:
             self.img = self.cv_img.copy()
             self.overlay = self.cv_img.copy()
             self.opacity = 0.3
+            self.canvasx = event.x
+            self.canvasy = event.y
             if hasattr(self,'mask_height'): # customized mask size
                 cv2.rectangle(self.overlay,(int(self.canvas.canvasx(event.x))-int(self.mask_width/2),int(self.canvas.canvasy(event.y))-int(self.mask_height/2)),
                 (int(self.canvas.canvasx(event.x))+int(self.mask_width/2),int(self.canvas.canvasy(event.y))+int(self.mask_height/2)),(255,255,0),-1)
@@ -127,26 +128,29 @@ class App:
 
         #[CLICK][CALLBACK] Create pop-up window
         def new_page(self):
+                
             if self.popup_switch == 0:
+
                 self.popup = Toplevel(self.window)
                 self.popup.title("Sure?")
                 self.popup_label = tkinter.Label(self.popup,text="Left bone", fg="black")
                 self.popup_label.config(width=20)
                 self.popup_label.config(font=("Courier", 14))
-                self.popup.geometry("%dx%d%+d%+d" % (150, 150, self.window.winfo_x()+self.currentx, self.window.winfo_y()+self.currenty))
+                self.popup.geometry("%dx%d%+d%+d" % (150, 150, self.canvasx, self.canvasy))
                 self.popup_label.pack()
             
                 self.btn_popup1 = tkinter.Button(self.popup, text="OK", height=5, width=5, command=self.popup_ok)
                 self.btn_popup2 = tkinter.Button(self.popup, text="CANCLE", height=5, width=5, command=self.popup_cancle)
                 self.btn_popup1.pack(side=tkinter.RIGHT)
                 self.btn_popup2.pack(side=tkinter.LEFT)
-            else:
+            else:          
+                
                 self.popup = Toplevel(self.window)
                 self.popup.title("Sure?")
                 self.popup_label = tkinter.Label(self.popup,text="Right bone", fg="black")
                 self.popup_label.config(width=20)
                 self.popup_label.config(font=("Courier", 14))
-                self.popup.geometry("%dx%d%+d%+d" % (150, 150, self.window.winfo_x()+self.currentx, self.window.winfo_y()+self.currenty))
+                self.popup.geometry("%dx%d%+d%+d" % (150, 150, self.canvasx, self.canvasy))
                 self.popup_label.pack()
             
                 self.btn_popup1 = tkinter.Button(self.popup, text="OK", height=5, width=5, command=self.popup_ok)
@@ -207,7 +211,7 @@ class App:
 
         #TO-DO
         pass
-     
+
 # Create a window and pass it to the Application object
 App(tkinter.Tk(), "Tkinter and OpenCV")
 
