@@ -1,4 +1,7 @@
 import tkinter
+import json
+import numpy as np
+import pandas as pd
 from tkinter import Toplevel
 from tkinter import Scrollbar
 import cv2
@@ -15,11 +18,12 @@ class App:
         self.img_path     = dataset_path + 'test.png'
         self.img_id       = '150057'  #first image
         self.dataset_path = dataset_path + 'CHD/'
+        self.csv_file     = dataset_path + 'annotation.csv'
         
         def get_img_list():
             DATASET_DIR       = Path().cwd() / 'dataset'/ 'CHD'
             DATASET_DIR_LIST  = list(DATASET_DIR.glob('*'))
-            img_list           = list()
+            img_list          = list()
 
             for data_dir in sorted(DATASET_DIR_LIST):
                 img_id      = data_dir.stem
@@ -27,12 +31,23 @@ class App:
                 img_name_de = img_id + '_VDanno'
                 img_list += sorted(list(set(data_dir.glob(img_name + '*')) - set(data_dir.glob(img_name_de + '*'))))
             #print(str(img_list[0].absolute()))
-            return img_list    
+            return img_list
+
+        def get_xray_list():
+            DATASET_DIR = Path().cwd() / 'dataset'/ 'xray'
+            dataList    = list(DATASET_DIR.glob('*.jpg'))
+
+            return dataList
+        
         self.img_list = get_img_list()
+        self.xray_list = get_xray_list()
+        self.df, self.todoList, self.startIndex = self.read_todoList(self.csv_file)
+
         self.img_list_index = 0  #first image index in img_list
 
-        print(str(self.img_list[0].absolute()))
-        
+        print('img_list[0]=',str(self.img_list[0].absolute()))
+        print('xray_list[0]=',str(self.xray_list[0].absolute()))
+
         #[Frame] Including upper half
         self.upframe = tkinter.Frame(self.window)
         self.upframe.pack()
@@ -157,7 +172,6 @@ class App:
                 self.btn_popup2 = tkinter.Button(self.popup, text="CANCLE", height=5, width=5, command=self.popup_cancle)
                 self.btn_popup1.pack(side=tkinter.RIGHT)
                 self.btn_popup2.pack(side=tkinter.LEFT)
-
         self.window.mainloop()
         
     def set_canvas(self):
@@ -167,6 +181,26 @@ class App:
         self.canvas.pack(side = 'left', fill = 'both')
         self.canvas.config(scrollregion=self.canvas.bbox('all'))
     
+    # read CSV file 
+    def read_todoList(self, csv_file):
+        df = pd.read_csv(csv_file)
+        df_notCrop = df[df['Cropped']=='N']
+        todoList = df_notCrop.iloc[0:]['PatientID'].tolist()
+        startIndex = np.where(df['Cropped']=='N')[0].tolist()[0]
+        print("to do list index= ",startIndex)
+        #print("whole list = ",df.iloc[0:]['PatientID'].tolist())
+        return df, todoList, startIndex
+
+    # Update CSV whenever finishing a image.
+    def write_csv(self):
+        pass
+    
+    def read_json(self):
+        pass
+
+    def write_json(self):
+    
+        pass
     # Valid list for entry object to restrict some characters.
     def validate(self, action, index, value_if_allowed, prior_value, text, validation_type, trigger_type, widget_name):
         if text in '0123456789':
@@ -196,6 +230,8 @@ class App:
 
     #[BUTTON][CALLBACK] Callback for new_page popup "OK" button
     def popup_ok(self):
+
+
         if self.popup_switch == 0:
                 self.popup_switch = 1
         else:
@@ -209,8 +245,6 @@ class App:
     def popup_cancle(self):
         self.popup.destroy()
 
-        #TO-DO
-        pass
 
 # Create a window and pass it to the Application object
 App(tkinter.Tk(), "Tkinter and OpenCV")
