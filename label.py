@@ -17,7 +17,7 @@ class App:
         self.popup_switch = 0
         self.dataset_path = dataset_path + 'xray/'
         self.csv_file     = dataset_path + 'xray/annotation.csv'
-        self.json_file    = dataset_path + 'xray/data.json'
+        self.json_file    = dataset_path + 'xray/coordinates.json'
 
         
         def get_img_list():
