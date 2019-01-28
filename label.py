@@ -11,13 +11,13 @@ import fnmatch
 import os
 
 class App:
-    def __init__(self, master, window_title='cropping tool', dataset_path="dataset/"):
+    def __init__(self, master, window_title='cropping tool', dataset_path='dataset/'):
         self.window = master
         self.window.title(window_title)
         self.popup_switch = 0
-        self.img_path     = dataset_path + 'test.png'
-        self.img_id       = '150057'  #first image
-        self.dataset_path = dataset_path + 'CHD/'
+        #self.img_path     = dataset_path + 'test.png'
+        #self.img_id       = '150057'  #first image
+        self.dataset_path = dataset_path + 'xray/'
         self.csv_file     = dataset_path + 'annotation.csv'
         
         def get_img_list():
@@ -35,38 +35,43 @@ class App:
 
         def get_xray_list():
             DATASET_DIR = Path().cwd() / 'dataset'/ 'xray'
-            dataList    = list(DATASET_DIR.glob('*.jpg'))
-
+            dataList    = sorted(list(DATASET_DIR.glob('*.jpg')))
             return dataList
         
-        self.img_list = get_img_list()
+        #self.img_list  = get_img_list()
+        
+        # Get whole X-ray list by going through dataset and get the starting information by checking CSV file.
         self.xray_list = get_xray_list()
-        self.df, self.todoList, self.startIndex = self.read_todoList(self.csv_file)
+        self.df, self.startIndex = self.read_todoList(self.csv_file)
+        self.img_path = str(self.xray_list[self.startIndex].absolute())
+        self.img_id   = self.xray_list[self.startIndex].stem
 
-        self.img_list_index = 0  #first image index in img_list
-
-        print('img_list[0]=',str(self.img_list[0].absolute()))
-        print('xray_list[0]=',str(self.xray_list[0].absolute()))
+        #self.img_list_index = self.startIndex  #first image index in img_list
+        #print('xray_list[start]=',str(self.xray_list[self.startIndex].absolute()))
 
         #[Frame] Including upper half
         self.upframe = tkinter.Frame(self.window)
         self.upframe.pack()
-
-        #[Frame] Including lower half
-        self.downframe = tkinter.Frame(self.window, width=800,height=800)
-        self.downframe.pack()
-
-        #[Label]
-        self.l1 = tkinter.Label(self.upframe, text="Config", fg="red", bg="yellow")
-        self.l1.pack(anchor=tkinter.N)      
         
+        self.entry_id_var = tkinter.StringVar(self.upframe)
+        self.entry_id_var.set(self.img_id)
+        self.entry_id = tkinter.Entry(self.upframe, textvariable=self.entry_id_var, state='disabled')
+        self.entry_id.config(disabledforeground='red', disabledbackground='yellow')
+        self.entry_id.pack(anchor=tkinter.N)
+
+        '''
+        #[Label]
+        self.l1 = tkinter.Label(self.upframe, text=self.img_id, fg="red", bg="yellow")
+        self.l1.pack(anchor=tkinter.N)   
+        '''
+
+        '''
         #[ENTRY] Creat a entry where user can decide the cropping size
         self.id = tkinter.StringVar(self.upframe)
         self.id.set(self.img_id)
-
-        vcmd = (self.upframe.register(self.validate), '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
-        self.entry_id = tkinter.Entry(self.upframe, validate = 'key', validatecommand = vcmd, textvariable=self.id)
-        self.entry_id.pack(anchor=tkinter.N)
+        '''
+        #self.entry_id = tkinter.Entry(self.upframe, validate = 'key', validatecommand = vcmd, textvariable=self.id)
+        #self.entry_id.pack(anchor=tkinter.N)
 
         #[ENTRY] Creat a entry where user can decide the cropping size
         self.crop_height = tkinter.StringVar(self.upframe)
@@ -82,7 +87,11 @@ class App:
         #[BUTTON] Button for determining the crop size and image starting id       
         self.btn_crop_size = tkinter.Button(self.upframe, text="OK", width=10, command=self.crop_size)
         self.btn_crop_size.pack(anchor=tkinter.N, expand=True)
-
+        
+        #[Frame] Including lower half
+        self.downframe = tkinter.Frame(self.window, width=800,height=800)
+        self.downframe.pack()
+        
         #[Scrollbar]
         self.yscrollbar = Scrollbar(self.downframe, orient='vertical', width=20)
         self.yscrollbar.pack(side='right', fill='y')
@@ -108,7 +117,7 @@ class App:
         self.yscrollbar.bind('<Enter>', func=bound_to_mousewheel)
         self.yscrollbar.bind('<Leave>', func=unbound_to_mousewheel)
         self.set_canvas()
-
+        
         #[MASK][CALLBACK] Draw a rectangle mask which follows the mouse
         def mask(event):
             self.img = self.cv_img.copy()
@@ -143,9 +152,8 @@ class App:
 
         #[CLICK][CALLBACK] Create pop-up window
         def new_page(self):
-                
+            # Left bone   
             if self.popup_switch == 0:
-
                 self.popup = Toplevel(self.window)
                 self.popup.title("Sure?")
                 self.popup_label = tkinter.Label(self.popup,text="Left bone", fg="black")
@@ -158,8 +166,8 @@ class App:
                 self.btn_popup2 = tkinter.Button(self.popup, text="CANCLE", height=5, width=5, command=self.popup_cancle)
                 self.btn_popup1.pack(side=tkinter.RIGHT)
                 self.btn_popup2.pack(side=tkinter.LEFT)
+            # Right bone
             else:          
-                
                 self.popup = Toplevel(self.window)
                 self.popup.title("Sure?")
                 self.popup_label = tkinter.Label(self.popup,text="Right bone", fg="black")
@@ -175,26 +183,32 @@ class App:
         self.window.mainloop()
         
     def set_canvas(self):
+        
         self.cv_img = cv2.cvtColor(cv2.imread(self.img_path), cv2.COLOR_BGR2RGB)
         self.photo  = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
         self.canvas.pack(side = 'left', fill = 'both')
         self.canvas.config(scrollregion=self.canvas.bbox('all'))
+        
+        self.entry_id_var.set(self.img_id)
     
     # read CSV file 
     def read_todoList(self, csv_file):
         df = pd.read_csv(csv_file)
         df_notCrop = df[df['Cropped']=='N']
-        todoList = df_notCrop.iloc[0:]['PatientID'].tolist()
+        #todoList = df_notCrop.iloc[0:]['PatientID'].tolist()
         startIndex = np.where(df['Cropped']=='N')[0].tolist()[0]
-        print("to do list index= ",startIndex)
+        print('******', df.at[startIndex,'Cropped'])
         #print("whole list = ",df.iloc[0:]['PatientID'].tolist())
-        return df, todoList, startIndex
+        return df, startIndex
 
-    # Update CSV whenever finishing a image.
-    def write_csv(self):
-        pass
-    
+    # Update annotation_new.csv whenever finishing an image.
+    def write_csv(self, df, row, column, path):
+        df2 = df
+        df2.at[row, column] = 'Y'
+        path = path + 'annotation_new.csv'
+        #df2.to_csv(path,index=0)
+        
     def read_json(self):
         pass
 
@@ -214,9 +228,10 @@ class App:
 
     #[BUTTON][CALLBACK] Callback for btn_crop_size or "OK" button
     def crop_size(self):
-        self.canvas.delete("all")
+        #self.canvas.delete("all")
         self.mask_height = int(self.crop_height.get())
         self.mask_width  = int(self.crop_width.get())
+        '''
         self.entry_id.config(bg='red')
 
         self.img_id   = self.id.get()
@@ -227,15 +242,26 @@ class App:
         print('###self.img_path = %s\n' %self.img_path)
         print('***self.img_list_index = %d\n' %self.img_list_index)
         self.set_canvas()
-
+        '''
     #[BUTTON][CALLBACK] Callback for new_page popup "OK" button
     def popup_ok(self):
-
-
+        # Left bone is finished
         if self.popup_switch == 0:
                 self.popup_switch = 1
+        # Right bone is finished
         else:
             self.popup_switch = 0
+
+            self.write_csv(self.df, self.startIndex, column='Cropped', path=self.dataset_path)
+            #TO-DO save json
+
+            self.startIndex += 1
+            self.img_path    = str(self.xray_list[self.startIndex].absolute())
+            self.img_id      = self.xray_list[self.startIndex].stem
+            
+            self.set_canvas()
+
+
         self.popup.destroy()
         
         #TO-DO save coordinate, next image
