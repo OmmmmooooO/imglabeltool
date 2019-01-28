@@ -15,10 +15,10 @@ class App:
         self.window = master
         self.window.title(window_title)
         self.popup_switch = 0
-        #self.img_path     = dataset_path + 'test.png'
-        #self.img_id       = '150057'  #first image
         self.dataset_path = dataset_path + 'xray/'
-        self.csv_file     = dataset_path + 'annotation.csv'
+        self.csv_file     = dataset_path + 'xray/annotation.csv'
+        self.json_file    = dataset_path + 'xray/data.json'
+
         
         def get_img_list():
             DATASET_DIR       = Path().cwd() / 'dataset'/ 'CHD'
@@ -38,16 +38,12 @@ class App:
             dataList    = sorted(list(DATASET_DIR.glob('*.jpg')))
             return dataList
         
-        #self.img_list  = get_img_list()
         
         # Get whole X-ray list by going through dataset and get the starting information by checking CSV file.
         self.xray_list = get_xray_list()
         self.df, self.startIndex = self.read_todoList(self.csv_file)
         self.img_path = str(self.xray_list[self.startIndex].absolute())
         self.img_id   = self.xray_list[self.startIndex].stem
-
-        #self.img_list_index = self.startIndex  #first image index in img_list
-        #print('xray_list[start]=',str(self.xray_list[self.startIndex].absolute()))
 
         #[Frame] Including upper half
         self.upframe = tkinter.Frame(self.window)
@@ -59,24 +55,12 @@ class App:
         self.entry_id.config(disabledforeground='red', disabledbackground='yellow')
         self.entry_id.pack(anchor=tkinter.N)
 
-        '''
-        #[Label]
-        self.l1 = tkinter.Label(self.upframe, text=self.img_id, fg="red", bg="yellow")
-        self.l1.pack(anchor=tkinter.N)   
-        '''
-
-        '''
-        #[ENTRY] Creat a entry where user can decide the cropping size
-        self.id = tkinter.StringVar(self.upframe)
-        self.id.set(self.img_id)
-        '''
-        #self.entry_id = tkinter.Entry(self.upframe, validate = 'key', validatecommand = vcmd, textvariable=self.id)
-        #self.entry_id.pack(anchor=tkinter.N)
-
         #[ENTRY] Creat a entry where user can decide the cropping size
         self.crop_height = tkinter.StringVar(self.upframe)
         self.crop_width = tkinter.StringVar(self.upframe)
-        self.crop_height.set("100") # default size
+        self.height = 100
+        self.width  = 100
+        self.crop_height.set("100") # default size 100*100
         self.crop_width.set("100")
         vcmd = (self.upframe.register(self.validate), '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
         self.entry_height = tkinter.Entry(self.upframe, validate = 'key', validatecommand = vcmd, textvariable=self.crop_height)
@@ -106,7 +90,7 @@ class App:
             self.canvas.unbind_all("<MouseWheel>")
         #[MOUSEWHEEL][CALLBACK]
         def on_mousewheel(event):
-            self.canvas.yview_scroll(-1*(event.delta/120), "units")
+            self.canvas.yview_scroll(-1*(event.delta), "units")
 
         #[CANVAS] Create a canvas to fit a image
         self.canvas_height = 600
@@ -125,12 +109,10 @@ class App:
             self.opacity = 0.3
             self.canvasx = event.x
             self.canvasy = event.y
-            if hasattr(self,'mask_height'): # customized mask size
-                cv2.rectangle(self.overlay,(int(self.canvas.canvasx(event.x))-int(self.mask_width/2),int(self.canvas.canvasy(event.y))-int(self.mask_height/2)),
-                (int(self.canvas.canvasx(event.x))+int(self.mask_width/2),int(self.canvas.canvasy(event.y))+int(self.mask_height/2)),(255,255,0),-1)
-            else: # default mask size is 100x100
-                cv2.rectangle(self.overlay,(int(self.canvas.canvasx(event.x))-50,int(self.canvas.canvasy(event.y))-50),
-                (int(self.canvas.canvasx(event.x))+50,int(self.canvas.canvasy(event.y))+50),(255,255,0),-1)
+
+            cv2.rectangle(self.overlay,(int(self.canvas.canvasx(event.x))-int(self.width/2),int(self.canvas.canvasy(event.y))-int(self.height/2)), 
+            (int(self.canvas.canvasx(event.x))+int(self.width/2),int(self.canvas.canvasy(event.y))+int(self.height/2)),(255,255,0),-1)
+
             cv2.addWeighted(self.overlay, self.opacity, self.img, 1 - self.opacity, 0, self.img)
             
             if hasattr(self, 'img'):
@@ -139,7 +121,7 @@ class App:
             self.photo = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.img))
             self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
             # debug only
-            print('{},{}'.format(self.canvas.canvasx(event.x),self.canvas.canvasy(event.y)))
+            #print('{},{}'.format(self.canvas.canvasx(event.x),self.canvas.canvasy(event.y)))
         self.canvas.bind("<Motion>", func=mask)
         
         #[CLICK][CALLBACK] Capture click position
@@ -198,7 +180,7 @@ class App:
         df_notCrop = df[df['Cropped']=='N']
         #todoList = df_notCrop.iloc[0:]['PatientID'].tolist()
         startIndex = np.where(df['Cropped']=='N')[0].tolist()[0]
-        print('******', df.at[startIndex,'Cropped'])
+        #print('******', df.at[startIndex,'Cropped'])
         #print("whole list = ",df.iloc[0:]['PatientID'].tolist())
         return df, startIndex
 
@@ -207,14 +189,8 @@ class App:
         df2 = df
         df2.at[row, column] = 'Y'
         path = path + 'annotation_new.csv'
-        #df2.to_csv(path,index=0)
+        df2.to_csv(path,index=0)
         
-    def read_json(self):
-        pass
-
-    def write_json(self):
-    
-        pass
     # Valid list for entry object to restrict some characters.
     def validate(self, action, index, value_if_allowed, prior_value, text, validation_type, trigger_type, widget_name):
         if text in '0123456789':
@@ -228,32 +204,58 @@ class App:
 
     #[BUTTON][CALLBACK] Callback for btn_crop_size or "OK" button
     def crop_size(self):
-        #self.canvas.delete("all")
-        self.mask_height = int(self.crop_height.get())
-        self.mask_width  = int(self.crop_width.get())
-        '''
-        self.entry_id.config(bg='red')
-
-        self.img_id   = self.id.get()
-        img_posixpath = [posixpath for posixpath in self.img_list if posixpath.match(self.img_id + '/*.jpg')]
-        self.img_list_index = self.img_list.index(img_posixpath[0])
-        self.img_path = str(img_posixpath[0])
-
-        print('###self.img_path = %s\n' %self.img_path)
-        print('***self.img_list_index = %d\n' %self.img_list_index)
-        self.set_canvas()
-        '''
+        self.height = int(self.crop_height.get())
+        self.width  = int(self.crop_width.get())
+        
     #[BUTTON][CALLBACK] Callback for new_page popup "OK" button
     def popup_ok(self):
         # Left bone is finished
         if self.popup_switch == 0:
                 self.popup_switch = 1
+                self.left_x = int(self.currentx - self.width/2)
+                self.left_y = int(self.currenty - self.height/2)
+                self.left_height = self.height
+                self.left_width  = self.width
         # Right bone is finished
         else:
             self.popup_switch = 0
 
             self.write_csv(self.df, self.startIndex, column='Cropped', path=self.dataset_path)
-            #TO-DO save json
+            
+            first_data = [{
+                'patientID': self.img_id,
+                'left_x': self.left_x,
+                'left_y': self.left_y,
+                'left_width': self.left_width,
+                'left_height': self.left_height,
+                'right_x': int(self.currentx - self.width/2),
+                'right_y': int(self.currenty - self.height/2),
+                'right_width': self.width,
+                'right_height': self.height
+            }]
+
+            data = {
+                'patientID': self.img_id,
+                'left_x': self.left_x,
+                'left_y': self.left_y,
+                'left_width': self.left_width,
+                'left_height': self.left_height,
+                'right_x': int(self.currentx - self.width/2),
+                'right_y': int(self.currenty - self.height/2),
+                'right_width': self.width,
+                'right_height': self.height
+            }
+
+            if Path(self.json_file).exists():
+                with open(self.json_file, 'r') as f:
+                    self.json_data = json.load(f)
+                    self.json_data.append(data)
+
+                with open(self.json_file, 'w') as f:
+                    json.dump(self.json_data, f)
+            else:
+                with open(self.json_file, 'w') as f:
+                    json.dump(first_data, f)
 
             self.startIndex += 1
             self.img_path    = str(self.xray_list[self.startIndex].absolute())
@@ -263,9 +265,6 @@ class App:
 
 
         self.popup.destroy()
-        
-        #TO-DO save coordinate, next image
-        pass
 
     #[BUTTON][CALLBACK] Callback for new_page popup "CANCLE" button
     def popup_cancle(self):
