@@ -1,5 +1,6 @@
 import tkinter
 import json
+import time
 import numpy as np
 import pandas as pd
 from tkinter import Toplevel
@@ -109,16 +110,15 @@ class App:
             self.opacity = 0.3
             self.canvasx = event.x
             self.canvasy = event.y
-
             cv2.rectangle(self.overlay,(int(self.canvas.canvasx(event.x))-int(self.width/2),int(self.canvas.canvasy(event.y))-int(self.height/2)), 
             (int(self.canvas.canvasx(event.x))+int(self.width/2),int(self.canvas.canvasy(event.y))+int(self.height/2)),(255,255,0),-1)
 
             cv2.addWeighted(self.overlay, self.opacity, self.img, 1 - self.opacity, 0, self.img)
-            
+
             if hasattr(self, 'img'):
                 self.canvas.delete("all")
-
-            self.photo = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.img))
+            self.image = PIL.Image.fromarray(self.img)
+            self.photo = PIL.ImageTk.PhotoImage(self.image)
             self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
             # debug only
             #print('{},{}'.format(self.canvas.canvasx(event.x),self.canvas.canvasy(event.y)))
@@ -181,15 +181,36 @@ class App:
         startIndex = np.where(df['Cropped']=='N')[0].tolist()[0]
         #print('******', df.at[startIndex,'Cropped'])
         #print("whole list = ",df.iloc[0:]['PatientID'].tolist())
+        
         return df, startIndex
 
     # Update annotation_new.csv whenever finishing an image.
     def write_csv(self, df, row, column, path):
+        df.to_csv(path+'annotation_prev.csv',index=0)
         df2 = df
         df2.at[row, column] = 'Y'
-        path = path + 'annotation_new.csv'
-        df2.to_csv(path,index=0)
+        df2.at[row, 'Time'] = time.strftime("%b/%d %X", time.localtime())
+        print(time.strftime("%b/%d %X", time.localtime()))
+        df2.to_csv(path+'annotation.csv',index=0)
+    
+    def save_mask(self,side='L'):
+        left_x  = self.currentx-int(self.width/2)-25
+        left_y  = self.currenty-int(self.height/2)-25
+        right_x = self.currentx+int(self.width/2)+25
+        right_y = self.currenty+int(self.height/2)+25
+
+        if side == 'L':
+            if not os.path.exists(self.dataset_path+ 'crop_L/'):
+                os.makedirs(self.dataset_path+ 'crop_L/')
+            file_name = self.dataset_path + 'crop_L/' + self.img_id + '_' + side + '.jpg'
+        else:
+            if not os.path.exists(self.dataset_path+ 'crop_R/'):
+                os.makedirs(self.dataset_path+ 'crop_R/')
+            file_name = self.dataset_path + 'crop_R/' + self.img_id + '_' + side + '.jpg'
+
+        self.image.crop((left_x,left_y,right_x,right_y)).save(file_name)
         
+    
     # Valid list for entry object to restrict some characters.
     def validate(self, action, index, value_if_allowed, prior_value, text, validation_type, trigger_type, widget_name):
         if text in '0123456789':
@@ -215,6 +236,8 @@ class App:
                 self.left_y = int(self.currenty - self.height/2)
                 self.left_height = self.height
                 self.left_width  = self.width
+                self.save_mask(side='L')                
+
         # Right bone is finished
         else:
             self.popup_switch = 0
@@ -245,6 +268,8 @@ class App:
                 'right_height': self.height
             }
 
+            self.save_mask(side='R')
+            
             if Path(self.json_file).exists():
                 with open(self.json_file, 'r') as f:
                     self.json_data = json.load(f)
