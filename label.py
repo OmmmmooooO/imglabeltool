@@ -16,9 +16,12 @@ class App:
         self.window = master
         self.window.title(window_title)
         self.popup_switch = 0
+        self.popup_flag   = 0
         self.dataset_path = dataset_path + 'xray/'
         self.csv_file     = dataset_path + 'xray/annotation.csv'
         self.json_file    = dataset_path + 'xray/coordinates.json'
+
+        
 
         
         def get_img_list():
@@ -105,6 +108,9 @@ class App:
         
         #[MASK][CALLBACK] Draw a rectangle mask which follows the mouse
         def mask(event):
+            if self.popup_flag==1:
+                self.canvas.unbind("<Motion>")
+            print('##########',self.popup_flag)
             self.img = self.cv_img.copy()
             self.overlay = self.cv_img.copy()
             self.opacity = 0.3
@@ -134,11 +140,12 @@ class App:
 
         #[CLICK][CALLBACK] Create pop-up window
         def new_page(self):
+            self.popup_flag = 1
             # Left bone   
             if self.popup_switch == 0:
                 self.popup = Toplevel(self.window)
                 self.popup.title("Sure?")
-                self.popup_label = tkinter.Label(self.popup,text="Left bone", fg="black")
+                self.popup_label = tkinter.Label(self.popup,text="Left hand side", fg="black")
                 self.popup_label.config(width=20)
                 self.popup_label.config(font=("Courier", 14))
                 self.popup.geometry("%dx%d%+d%+d" % (150, 150, self.canvasx, self.canvasy))
@@ -152,7 +159,7 @@ class App:
             else:          
                 self.popup = Toplevel(self.window)
                 self.popup.title("Sure?")
-                self.popup_label = tkinter.Label(self.popup,text="Right bone", fg="black")
+                self.popup_label = tkinter.Label(self.popup,text="Right hand side", fg="black")
                 self.popup_label.config(width=20)
                 self.popup_label.config(font=("Courier", 14))
                 self.popup.geometry("%dx%d%+d%+d" % (150, 150, self.canvasx, self.canvasy))
@@ -210,7 +217,6 @@ class App:
 
         self.image.crop((left_x,left_y,right_x,right_y)).save(file_name)
         
-    
     # Valid list for entry object to restrict some characters.
     def validate(self, action, index, value_if_allowed, prior_value, text, validation_type, trigger_type, widget_name):
         if text in '0123456789':
@@ -241,7 +247,6 @@ class App:
         # Right bone is finished
         else:
             self.popup_switch = 0
-
             self.write_csv(self.df, self.startIndex, column='Cropped', path=self.dataset_path)
             
             first_data = [{
@@ -287,12 +292,14 @@ class App:
             
             self.set_canvas()
 
-
         self.popup.destroy()
+        self.popup_flag = 0
+
 
     #[BUTTON][CALLBACK] Callback for new_page popup "CANCLE" button
     def popup_cancle(self):
         self.popup.destroy()
+        self.popup_flag = 0
 
 
 # Create a window and pass it to the Application object
