@@ -2,21 +2,11 @@ import json
 import cv2
 from pathlib import Path
 
-'''
-if Path(self.json_file).exists():
-    with open(self.json_file, 'r') as f:
-        self.json_data = json.load(f)
-        self.json_data.append(data)
-
-    with open(self.json_file, 'w') as f:
-        json.dump(self.json_data, f)
-'''
-
 def main():
     json_file    = 'dataset/xray/coordinates.json'
     dataset_file = 'dataset/xray/'
     cropped_file = 'cropped_imgs/'
-    
+
     if Path(json_file).exists():
         with open(json_file, 'r') as f:
             json_data = json.load(f)
