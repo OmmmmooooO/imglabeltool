@@ -10,20 +10,19 @@ import PIL.Image, PIL.ImageTk, PIL.ImageDraw
 from pathlib import Path
 import fnmatch
 import os
+from PyQt5.QtWidgets import QApplication
 
 class App:
     def __init__(self, master, window_title='cropping tool', dataset_path='dataset/'):
         self.window = master
         self.window.title(window_title)
+        self.center(self.window)
         self.popup_switch = 0
         self.popup_flag   = 0
         self.dataset_path = dataset_path + 'xray/'
         self.csv_file     = dataset_path + 'xray/annotation.csv'
         self.json_file    = dataset_path + 'xray/coordinates.json'
 
-        
-
-        
         def get_img_list():
             DATASET_DIR       = Path().cwd() / 'dataset'/ 'CHD'
             DATASET_DIR_LIST  = list(DATASET_DIR.glob('*'))
@@ -107,10 +106,9 @@ class App:
         self.set_canvas()
         
         #[MASK][CALLBACK] Draw a rectangle mask which follows the mouse
-        def mask(event):
+        def mask(event):            
             if self.popup_flag==1:
-                self.canvas.unbind("<Motion>")
-            print('##########',self.popup_flag)
+                return
             self.img = self.cv_img.copy()
             self.overlay = self.cv_img.copy()
             self.opacity = 0.3
@@ -148,7 +146,8 @@ class App:
                 self.popup_label = tkinter.Label(self.popup,text="Left hand side", fg="black")
                 self.popup_label.config(width=20)
                 self.popup_label.config(font=("Courier", 14))
-                self.popup.geometry("%dx%d%+d%+d" % (150, 150, self.canvasx, self.canvasy))
+                self.popup.geometry("%dx%d" % (200, 200))
+                self.center(self.popup)
                 self.popup_label.pack()
             
                 self.btn_popup1 = tkinter.Button(self.popup, text="OK", height=5, width=5, command=self.popup_ok)
@@ -162,7 +161,8 @@ class App:
                 self.popup_label = tkinter.Label(self.popup,text="Right hand side", fg="black")
                 self.popup_label.config(width=20)
                 self.popup_label.config(font=("Courier", 14))
-                self.popup.geometry("%dx%d%+d%+d" % (150, 150, self.canvasx, self.canvasy))
+                self.popup.geometry("%dx%d" % (200, 200))
+                self.center(self.popup)
                 self.popup_label.pack()
             
                 self.btn_popup1 = tkinter.Button(self.popup, text="OK", height=5, width=5, command=self.popup_ok)
@@ -170,7 +170,27 @@ class App:
                 self.btn_popup1.pack(side=tkinter.RIGHT)
                 self.btn_popup2.pack(side=tkinter.LEFT)
         self.window.mainloop()
-        
+    
+    # Set window on the center
+    def center(self, toplevel):
+        toplevel.update_idletasks()
+
+        # Tkinter way to find the screen resolution
+        # screen_width = toplevel.winfo_screenwidth()
+        # screen_height = toplevel.winfo_screenheight()
+
+        # PyQt way to find the screen resolution
+        app = QApplication([])
+        screen_width = app.desktop().screenGeometry().width()
+        screen_height = app.desktop().screenGeometry().height()
+
+        size = tuple(int(_) for _ in toplevel.geometry().split('+')[0].split('x'))
+        x = screen_width/2 - size[0]/2
+        y = screen_height/2 - size[1]/2
+
+        toplevel.geometry("+%d+%d" % (x, y))
+        #toplevel.title("Centered!")    
+
     def set_canvas(self):
         self.cv_img = cv2.cvtColor(cv2.imread(self.img_path), cv2.COLOR_BGR2RGB)
         self.photo  = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(self.cv_img))
@@ -180,7 +200,7 @@ class App:
         
         self.entry_id_var.set(self.img_id)
     
-    # read CSV file 
+    # Read CSV file 
     def read_todoList(self, csv_file):
         df = pd.read_csv(csv_file)
         df_notCrop = df[df['Cropped']=='N']
@@ -200,6 +220,7 @@ class App:
         print(time.strftime("%b/%d %X", time.localtime()))
         df2.to_csv(path+'annotation.csv',index=0)
     
+    # Save cropped mask
     def save_mask(self,side='L'):
         left_x  = self.currentx-int(self.width/2)-25
         left_y  = self.currenty-int(self.height/2)-25
@@ -295,13 +316,11 @@ class App:
         self.popup.destroy()
         self.popup_flag = 0
 
-
     #[BUTTON][CALLBACK] Callback for new_page popup "CANCLE" button
     def popup_cancle(self):
         self.popup.destroy()
         self.popup_flag = 0
 
-
 # Create a window and pass it to the Application object
-App(tkinter.Tk(), "Tkinter and OpenCV")
+App(tkinter.Tk(), "Cropper")
 
