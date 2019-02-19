@@ -203,21 +203,20 @@ class App:
     # Read CSV file 
     def read_todoList(self, csv_file):
         df = pd.read_csv(csv_file)
-        df_notCrop = df[df['Cropped']=='N']
+        df_notCrop = df[df['Cropped']!='Y']
         #todoList = df_notCrop.iloc[0:]['PatientID'].tolist()
-        startIndex = np.where(df['Cropped']=='N')[0].tolist()[0]
+        startIndex = np.where(df['Cropped']!='Y')[0].tolist()[0]
         #print('******', df.at[startIndex,'Cropped'])
         #print("whole list = ",df.iloc[0:]['PatientID'].tolist())
         
         return df, startIndex
 
-    # Update annotation_new.csv whenever finishing an image.
+    # Update csv whenever finishing an image.
     def write_csv(self, df, row, column, path):
         df.to_csv(path+'annotation_prev.csv',index=0)
         df2 = df
         df2.at[row, column] = 'Y'
-        df2.at[row, 'Time'] = time.strftime("%b/%d %X", time.localtime())
-        print(time.strftime("%b/%d %X", time.localtime()))
+        df2.at[row, 'Time'] = time.strftime("%b/%d/%X", time.localtime())       
         df2.to_csv(path+'annotation.csv',index=0)
     
     # Save cropped mask
@@ -268,7 +267,7 @@ class App:
         # Right bone is finished
         else:
             self.popup_switch = 0
-            self.write_csv(self.df, self.startIndex, column='Cropped', path=self.dataset_path)
+            self.write_csv(self.df, row=self.startIndex, column='Cropped', path=self.dataset_path)
             
             first_data = [{
                 'patientID': self.img_id,
