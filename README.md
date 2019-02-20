@@ -11,7 +11,7 @@ imglabeltool
 |       ├── 160565.jpg
 |       ├── 170116.jpg
 |       ├── 180006.jpg
-|       └── annotation.csv   <-- Most follow this format as input of label.py
+|       └── annotation.csv   <-- Most follow this format as an input of label.py
 ├── cropped_imgs             <-- An empty folder before running cut.py
 │   ├──
 │   :
@@ -26,7 +26,7 @@ imglabeltool
 ```
 
 ## Usage
-```label.py``` -- Manually crop a image in a customized size. The coordinate, width and height are recorded in a json file.  
+```label.py``` -- Manually crop an image in a customized size. The coordinate, width and height are recorded in a json file.  
 ```cut.py```  -- Read the abovementioned json to genereate an image dataset.
 
 
