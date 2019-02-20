@@ -42,7 +42,7 @@ imglabeltool
 ```
   $ python cut.py
 ```  
-      Or if you want to generate a dataset in other size, e.g., 224x224 :
+Or if you want to generate a dataset in other size, e.g., 224x224 :
 
 ```
   $ python cut.py -s 224
