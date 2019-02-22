@@ -61,10 +61,10 @@ class App:
         #[ENTRY] Creat a entry where user can decide the cropping size
         self.crop_height = tkinter.StringVar(self.upframe)
         self.crop_width = tkinter.StringVar(self.upframe)
-        self.height = 100
-        self.width  = 100
-        self.crop_height.set("100") # default size 100*100
-        self.crop_width.set("100")
+        self.height = 400
+        self.width  = 400
+        self.crop_height.set("400") # default size 100*100
+        self.crop_width.set("400")
         vcmd = (self.upframe.register(self.validate), '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
         self.entry_height = tkinter.Entry(self.upframe, validate = 'key', validatecommand = vcmd, textvariable=self.crop_height)
         self.entry_width = tkinter.Entry(self.upframe, validate = 'key', validatecommand = vcmd, textvariable=self.crop_width)  
@@ -221,10 +221,10 @@ class App:
     
     # Save cropped mask
     def save_mask(self,side='L'):
-        left_x  = self.currentx-int(self.width/2)-25
-        left_y  = self.currenty-int(self.height/2)-25
-        right_x = self.currentx+int(self.width/2)+25
-        right_y = self.currenty+int(self.height/2)+25
+        left_x  = self.currentx-int(self.width/2)-50
+        left_y  = self.currenty-int(self.height/2)-50
+        right_x = self.currentx+int(self.width/2)+50
+        right_y = self.currenty+int(self.height/2)+50
 
         if side == 'L':
             if not os.path.exists(self.dataset_path+ 'crop_L/'):
