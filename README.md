@@ -12,7 +12,7 @@ imglabeltool
 |       ├── 170116.jpg
 |       ├── 180006.jpg
 |       ├── annotation.csv    <-- Most follow this format as an input of label.py
-|       └── coordinate.json <-- It's an output of label.py and the input of cut.py
+|       └── coordinate.json   <-- It's an output of label.py and the input of cut.py
 ├── cropped_L                 <-- Generate left desired region after running cut.py
 │   ├──150057_L.jpg
 │   :
